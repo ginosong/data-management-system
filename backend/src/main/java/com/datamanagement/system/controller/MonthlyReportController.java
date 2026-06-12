@@ -60,6 +60,14 @@ public class MonthlyReportController {
         );
     }
 
+    @GetMapping("/export/monthly-table")
+    public ResponseEntity<byte[]> exportMonthlyTable(@RequestParam String month) {
+        return excelResponse(
+            reportExcelService.exportMonthlyEntryTable(month),
+            "monthly-report-table-" + month + ".xlsx"
+        );
+    }
+
     @GetMapping("/{reportId}/export")
     public ResponseEntity<byte[]> exportReport(@PathVariable Long reportId) {
         return excelResponse(reportExcelService.exportReport(reportId), "monthly-report-" + reportId + ".xlsx");

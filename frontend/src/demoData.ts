@@ -238,6 +238,8 @@ export const fallbackReports: ReportSummary[] = [
       serviceHours: 120,
       openHours: 92,
       trainingHours: 42,
+      enterpriseUserHours: 58,
+      shanghaiUserHours: 36,
     },
   },
   {
@@ -255,6 +257,8 @@ export const fallbackReports: ReportSummary[] = [
       serviceHours: 103,
       openHours: 74,
       trainingHours: 26,
+      enterpriseUserHours: 45,
+      shanghaiUserHours: 31,
     },
   },
 ]

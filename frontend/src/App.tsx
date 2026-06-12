@@ -160,6 +160,7 @@ function App() {
   const [reportIdMap, setReportIdMap] = useState<Record<number, number | null>>({})
   const [loadingEntry, setLoadingEntry] = useState(false)
   const [savingMulti, setSavingMulti] = useState(false)
+  const [exportingEntry, setExportingEntry] = useState(false)
   const [entryFullscreen, setEntryFullscreen] = useState(false)
   const [reportFilters, setReportFilters] = useState({
     month: fallbackOverview.latestMonth,
@@ -522,6 +523,25 @@ function App() {
     }
   }
 
+  async function handleExportEntryMonth() {
+    if (!entryMonth) {
+      setNotice({ type: 'error', text: '请先选择填报月份。' })
+      return
+    }
+    setExportingEntry(true)
+    try {
+      await authorizedDownload(
+        `/api/reports/export/monthly-table?month=${encodeURIComponent(entryMonth)}`,
+        `monthly-report-table-${entryMonth}.xlsx`
+      )
+      setNotice({ type: 'success', text: '月报已导出。' })
+    } catch (error) {
+      setNotice({ type: 'error', text: getErrorMessage(error) })
+    } finally {
+      setExportingEntry(false)
+    }
+  }
+
   async function handleDeleteReport(reportId: number) {
     if (!window.confirm('确认删除这份月报吗？删除后需要重新录入。')) {
       return
@@ -835,6 +855,22 @@ function App() {
     return (await response.json()) as T
   }
 
+  async function authorizedDownload(url: string, fileName: string) {
+    const response = await authorizedResponse(url)
+    if (!response.ok) {
+      throw await createResponseError(response)
+    }
+    const blob = await response.blob()
+    const objectUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(objectUrl)
+  }
+
   if (!session) {
     return (
       <div className="auth-shell">
@@ -1016,22 +1052,24 @@ function App() {
 
   function renderReportEntry() {
     // Build header spans from template groups
-    const groupSpans: { name: string; colSpan: number; hasSections: boolean; gi: number }[] = []
-    const sectionSpans: { name: string; colSpan: number; isEmpty: boolean; gi: number }[] = []
+    const redHeaderGroups = new Set(['基本运行情况', '对外开放情况'])
+    const groupSpans: { name: string; colSpan: number; hasSections: boolean; gi: number; redHeader: boolean }[] = []
+    const sectionSpans: { name: string; colSpan: number; isEmpty: boolean; gi: number; redHeader: boolean }[] = []
     const orderedFields: (import('./types').TemplateField & { gi: number })[] = []
 
     let gi = 0
     for (const group of template.groups) {
       const hasSections = group.sections.length > 1 || group.sections.some((s) => s.name !== group.name)
       let groupCols = 0
+      const redHeader = redHeaderGroups.has(group.name)
       for (const section of group.sections) {
         groupCols += section.fields.length
-        sectionSpans.push({ name: section.name, colSpan: section.fields.length, isEmpty: !hasSections, gi })
+        sectionSpans.push({ name: section.name, colSpan: section.fields.length, isEmpty: !hasSections, gi, redHeader })
         for (const field of section.fields) {
           orderedFields.push({ ...field, gi })
         }
       }
-      groupSpans.push({ name: group.name, colSpan: groupCols, hasSections, gi })
+      groupSpans.push({ name: group.name, colSpan: groupCols, hasSections, gi, redHeader })
       gi++
     }
 
@@ -1066,6 +1104,11 @@ function App() {
               <button className="primary-button" disabled={savingMulti} onClick={() => void handleSaveAllRows()}>
                 {savingMulti ? '保存中...' : '保存全部月报'}
               </button>
+              {canUser(session!.user, 'reports:export') ? (
+                <button className="secondary-button" disabled={exportingEntry} onClick={() => void handleExportEntryMonth()}>
+                  {exportingEntry ? '导出中...' : '导出月报'}
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -1088,7 +1131,7 @@ function App() {
                   <th className="sticky-col sticky-unit col-header" rowSpan={3}>统计单位</th>
                   <th className="sticky-col sticky-center col-header" rowSpan={3}>技术平台/技术中心</th>
                   {groupSpans.map((g) => (
-                    <th key={g.gi} className={`col-header group-header gc-${g.gi % 6}`} colSpan={g.colSpan} rowSpan={g.hasSections ? 1 : 2}>
+                    <th key={g.gi} className={`col-header group-header gc-${g.gi % 6}${g.redHeader ? ' red-header' : ''}`} colSpan={g.colSpan} rowSpan={g.hasSections ? 1 : 2}>
                       {g.name}
                     </th>
                   ))}
@@ -1096,15 +1139,14 @@ function App() {
                 <tr className="header-row-section">
                   {sectionSpans.map((s, si) =>
                     s.isEmpty ? null : (
-                      <th key={si} className={`col-header section-header gc-${s.gi % 6}`} colSpan={s.colSpan}>{s.name}</th>
+                      <th key={si} className={`col-header section-header gc-${s.gi % 6}${s.redHeader ? ' red-header' : ''}`} colSpan={s.colSpan}>{s.name}</th>
                     )
                   )}
                 </tr>
                 <tr className="header-row-field">
                   {orderedFields.map((field) => (
-                    <th key={field.key} className={`col-header field-header gc-${field.gi % 6}${field.readOnly ? ' readonly-col' : ''}`}>
+                    <th key={field.key} className={`col-header field-header gc-${field.gi % 6}${redHeaderGroups.has(field.groupName) ? ' red-header' : ''}${field.readOnly ? ' readonly-col' : ''}`}>
                       <div className="fh-label">{field.label}</div>
-                      <div className="fh-col">{field.excelColumn}</div>
                     </th>
                   ))}
                 </tr>
@@ -1143,6 +1185,13 @@ function App() {
                   )
                 })}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td className="entry-table-note" colSpan={orderedFields.length + 2}>
+                    注：医院按照企业类别统计
+                  </td>
+                </tr>
+              </tfoot>
             </table>
             {loadingEntry ? <div className="entry-loading">加载数据中…</div> : null}
             {!loadingEntry && centerRows.length === 0 ? (
@@ -1295,9 +1344,9 @@ function App() {
                   <th>月份</th>
                   <th>统计单位</th>
                   <th>技术中心</th>
-                  <th>服务机时</th>
-                  <th>开放机时</th>
-                  <th>培训课时</th>
+                  <th>运行机时</th>
+                  <th>企业用户机时</th>
+                  <th>上海用户机时</th>
                   <th>状态</th>
                   <th>操作</th>
                 </tr>
@@ -1308,9 +1357,9 @@ function App() {
                     <td>{item.reportMonth}</td>
                     <td>{item.unitName}</td>
                     <td>{item.centerName}</td>
-                    <td>{formatMetric(item.metrics.serviceHours)}</td>
-                    <td>{formatMetric(item.metrics.openHours)}</td>
-                    <td>{formatMetric(item.metrics.trainingHours)}</td>
+                    <td>{formatMetric(item.metrics.runHours)}</td>
+                    <td>{formatMetric(item.metrics.enterpriseUserHours)}</td>
+                    <td>{formatMetric(item.metrics.shanghaiUserHours)}</td>
                     <td>
                       <span className={`status-pill ${item.auditStatus.toLowerCase()}`}>{item.auditStatus}</span>
                     </td>
@@ -1982,6 +2031,8 @@ const METRIC_KEY_MAP: Record<string, keyof import('./types').ReportSummary['metr
   run_hours: 'runHours',
   service_hours: 'serviceHours',
   open_hours_total: 'openHours',
+  enterprise_user_hours: 'enterpriseUserHours',
+  open_hours_shanghai: 'shanghaiUserHours',
   training_hours: 'trainingHours',
   enterprise_training_hours: 'trainingHours',
   safety_training_hours: 'trainingHours',

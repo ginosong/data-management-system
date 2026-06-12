@@ -1,0 +1,33 @@
+[Unit]
+Description=Data Management System Backend
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=dms
+WorkingDirectory=/opt/dms
+
+# ── 数据库连接（按实际情况修改）──────────────────────────────
+Environment="DMS_DB_URL=jdbc:mysql://localhost:3306/data_management_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai"
+Environment="DMS_DB_USERNAME=root"
+Environment="DMS_DB_PASSWORD=Iwish2024NB"
+
+# ── JWT 密钥（生产环境务必换成足够长的随机字符串）────────────
+Environment="JWT_SECRET=DataManagementSystemJwtSecretKey2026!1234567890"
+
+# ── 启动命令 ──────────────────────────────────────────────────
+ExecStart=/usr/bin/java -jar /opt/dms/backend.jar
+
+# ── 重启策略 ──────────────────────────────────────────────────
+Restart=on-failure
+RestartSec=10
+SuccessExitStatus=143
+
+# ── 输出日志到 journald ───────────────────────────────────────
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dms-backend
+
+[Install]
+WantedBy=multi-user.target

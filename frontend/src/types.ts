@@ -109,6 +109,8 @@ export interface ReportSummary {
     serviceHours: number | string
     openHours: number | string
     trainingHours: number | string
+    enterpriseUserHours: number | string
+    shanghaiUserHours: number | string
   }
 }
 

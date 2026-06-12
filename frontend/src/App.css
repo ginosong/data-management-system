@@ -1333,6 +1333,12 @@ input:disabled {
   filter: brightness(0.96) saturate(1.1);
 }
 
+.group-header.red-header,
+.section-header.red-header,
+.field-header.red-header .fh-label {
+  color: #ff0000;
+}
+
 .fh-label {
   font-weight: 500;
   font-size: 0.77rem;
@@ -1376,6 +1382,17 @@ input:disabled {
 
 .data-cell {
   padding: 0;
+}
+
+.entry-table-note {
+  height: 40px;
+  padding: 8px 10px !important;
+  color: #ff0000;
+  background: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .readonly-cell {

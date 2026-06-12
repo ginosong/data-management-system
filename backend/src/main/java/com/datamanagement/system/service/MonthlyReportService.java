@@ -310,7 +310,9 @@ public class MonthlyReportService {
             "openHours", numericValue(values, "open_hours_total"),
             "trainingHours", numericValue(values, "training_hours")
                 .add(numericValue(values, "enterprise_training_hours"))
-                .add(numericValue(values, "safety_training_hours"))
+                .add(numericValue(values, "safety_training_hours")),
+            "enterpriseUserHours", numericValue(values, "enterprise_user_hours"),
+            "shanghaiUserHours", numericValue(values, "open_hours_shanghai")
         ));
         return item;
     }
