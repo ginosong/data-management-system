@@ -155,7 +155,10 @@ function App() {
   const [accessOverview, setAccessOverview] = useState<AccessOverview>(fallbackAccessOverview)
   const [formState, setFormState] = useState<ReportFormState>(emptyFormState)
   const [editingReportId, setEditingReportId] = useState<number | null>(fallbackReportDetail.id)
-  const [entryMonth, setEntryMonth] = useState<string>(fallbackOverview.latestMonth)
+  const [entryMonth, setEntryMonth] = useState<string>(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
   const [multiValues, setMultiValues] = useState<Record<number, Record<string, string>>>({})
   const [reportIdMap, setReportIdMap] = useState<Record<number, number | null>>({})
   const [loadingEntry, setLoadingEntry] = useState(false)
@@ -1635,10 +1638,10 @@ function App() {
                     <td>{user.username}</td>
                     <td>{user.displayName}</td>
                     <td>{user.roles.join('、') || (user.admin ? '系统管理员' : '-')}</td>
-                    <td>{user.admin ? '全部技术中心' : user.centers.join('、') || '未配置'}</td>
+                    <td className="scope-col">{user.admin ? '全部技术中心' : user.centers.join('、') || '未配置'}</td>
                     <td>{user.enabled === false ? '已停用' : '启用中'}</td>
-                    <td>
-                      <div className="row-actions wrap-actions">
+                    <td className="actions-col">
+                      <div className="row-actions">
                         <button className="inline-button" onClick={() => handleEditUser(user)}>编辑</button>
                         <button className="inline-button" onClick={() => { handleEditUser(user); setActiveView('reset-password') }}>重置密码</button>
                         <button className="inline-button danger" onClick={() => void handleDisableUser(user.id)}>停用</button>
@@ -1911,10 +1914,6 @@ function App() {
             <h1>重大科技设施运行数据管理系统</h1>
           </div>
           <div className="topbar-actions wrap-actions">
-            <div className="topbar-meta">
-              <span>{session!.user.username}</span>
-              <strong>{overview.latestMonth}</strong>
-            </div>
             <button className="secondary-button" onClick={() => void loadWorkspaceData(session!.user, reportFilters.month || overview.latestMonth)}>
               {loading ? '加载中...' : '刷新数据'}
             </button>
