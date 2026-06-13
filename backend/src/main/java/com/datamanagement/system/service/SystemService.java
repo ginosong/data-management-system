@@ -254,6 +254,7 @@ public class SystemService {
 
     private void replaceUserRoles(Long userId, List<Role> roles) {
         userRoleRepository.deleteByUserId(userId);
+        userRoleRepository.flush();
         if (roles.isEmpty()) {
             return;
         }
@@ -264,6 +265,7 @@ public class SystemService {
 
     private void replaceUserCenters(Long userId, List<TechnicalCenter> centers) {
         userCenterPermissionRepository.deleteByUserId(userId);
+        userCenterPermissionRepository.flush();
         if (centers.isEmpty()) {
             return;
         }
