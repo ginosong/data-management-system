@@ -743,15 +743,15 @@ function App() {
     setTimeout(() => roleFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
   }
 
-  function resetUserForm(accessData = accessOverview, availableUnits = units) {
-    const defaultRoleId = accessData.roles[0]?.id
-    const defaultCenterId = resolveAllCenterIds(availableUnits)[0]
+  function resetUserForm(accessData = accessOverview, _availableUnits = units) {
+    const defaultRole = accessData.roles.find((r) => r.code === 'REPORT_EDITOR') ?? accessData.roles[0]
+    const defaultRoleId = defaultRole?.id
     setEditingUserId(null)
     setUserDraft({
       ...emptyUserDraft,
       enabled: true,
       roleIds: defaultRoleId ? [defaultRoleId] : [],
-      centerIds: defaultCenterId ? [defaultCenterId] : [],
+      centerIds: [],
     })
     setResetPassword('')
   }
@@ -2191,8 +2191,4 @@ function toggleStringItem(items: string[], value: string, checked: boolean) {
     return Array.from(new Set([...items, value]))
   }
   return items.filter((item) => item !== value)
-}
-
-function resolveAllCenterIds(units: StatisticsUnitItem[]) {
-  return units.flatMap((unit) => unit.centers.map((center) => center.id))
 }
